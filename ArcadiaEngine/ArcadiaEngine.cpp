@@ -56,7 +56,8 @@ private:
     // TODO: Define your skip list node structure and necessary variables
     // Hint: You'll need nodes with multiple forward pointers
 
-    struct Node{
+    struct Node
+    {
         int playerID;
         int score;
         vector<Node *> forward;
@@ -71,14 +72,16 @@ private:
     int level;
     Node *header;
 
-    int randomLevel(){
+    int randomLevel()
+    {
         int lvl = 1;
         while (((double)rand() / RAND_MAX) < P && lvl < MAX_LEVEL)
             lvl++;
         return lvl;
     }
 
-    bool comesBefore(int score1, int id1, int score2, int id2){
+    bool comesBefore(int score1, int id1, int score2, int id2)
+    {
         if (score1 != score2)
             return score1 > score2;
         return id1 < id2;
@@ -168,7 +171,8 @@ public:
 
         delete current;
 
-        while (level > 1 && header->forward[level - 1] == nullptr){
+        while (level > 1 && header->forward[level - 1] == nullptr)
+        {
             level--;
         }
     }
@@ -202,7 +206,7 @@ private:
     ConcreteAuctionTree *right;
     ConcreteAuctionTree *parent;
     ConcreteAuctionTree *root;
-    ConcreteAuctionTree * insertNode(ConcreteAuctionTree *&root, ConcreteAuctionTree *newNode);
+    ConcreteAuctionTree *insertNode(ConcreteAuctionTree *&root, ConcreteAuctionTree *newNode);
     void roteateLeft(ConcreteAuctionTree *&root, ConcreteAuctionTree *x);
     void roteateRight(ConcreteAuctionTree *&root, ConcreteAuctionTree *x);
     void fixInsert(ConcreteAuctionTree *&root, ConcreteAuctionTree *x);
@@ -210,6 +214,7 @@ private:
     void deleteNode(ConcreteAuctionTree *&root, int itemID);
     void setColor(ConcreteAuctionTree *&root, ConcreteAuctionTree *x, string color);
     string getColor(ConcreteAuctionTree *&root, ConcreteAuctionTree *x);
+
 public:
     ConcreteAuctionTree()
     {
@@ -221,16 +226,21 @@ public:
         parent = NULL;
         root = NULL;
     }
-    ConcreteAuctionTree * insertNode(ConcreteAuctionTree *&root, ConcreteAuctionTree *newNode){
-        if (root == NULL){
+    ConcreteAuctionTree *insertNode(ConcreteAuctionTree *&root, ConcreteAuctionTree *newNode)
+    {
+        if (root == NULL)
+        {
             root = newNode;
             return newNode;
         }
-        if (newNode->price < root->price){
-            root->left = insertNode(root->left ,newNode);
+        if (newNode->price < root->price)
+        {
+            root->left = insertNode(root->left, newNode);
             root->left->parent = root;
-        }else{
-            root->right = insertNode(root->right,newNode);
+        }
+        else
+        {
+            root->right = insertNode(root->right, newNode);
             root->right->parent = root;
         }
         return root;
@@ -248,8 +258,6 @@ public:
         newNode->right = NULL;
         newNode->parent = NULL;
         root = insertNode(root, newNode);
-
-
     }
 
     void deleteItem(int itemID) override
@@ -324,11 +332,24 @@ string WorldNavigator::sumMinDistancesBinary(int n, vector<vector<int>> &roads)
 
 int ServerKernel::minIntervals(vector<char> &tasks, int n)
 {
-    // TODO: Implement task scheduler with cooling time
-    // Same task must wait 'n' intervals before running again
-    // Return minimum total intervals needed (including idle time)
-    // Hint: Use greedy approach with frequency counting
-    return 0;
+    vector<int> freq(26, 0);
+    for (char c : tasks)
+    {
+        freq[c - 'A']++;
+    }
+
+    int maxFreq = *max_element(freq.begin(), freq.end());
+
+    int countSameMax = 0;
+    for (int f : freq)
+    {
+        if (f == maxFreq)
+            countSameMax++;
+    }
+
+    int minIntervals = (maxFreq - 1) * (n + 1) + countSameMax;
+
+    return max((int)tasks.size(), minIntervals);
 }
 
 // =========================================================
@@ -351,5 +372,4 @@ extern "C"
     {
         return new ConcreteAuctionTree();
     }
-
 }
