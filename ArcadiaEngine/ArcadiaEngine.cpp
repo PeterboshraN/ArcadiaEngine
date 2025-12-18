@@ -22,28 +22,84 @@ using namespace std;
 
 // --- 1. PlayerTable (Double Hashing) ---
 
+// --- 1. PlayerTable (Double Hashing) ---
 class ConcretePlayerTable : public PlayerTable
 {
 private:
-    // TODO: Define your data structures here
-    // Hint: You'll need a hash table with double hashing collision resolution
+    static const int TABLE_SIZE = 101;
+    static const int PRIME = 97;
+
+    struct Entry
+    {
+        int playerID;
+        string name;
+        bool occupied;
+
+        Entry() : playerID(-1), name(""), occupied(false) {}
+    };
+
+    Entry table[TABLE_SIZE];
+
+    // Division method
+    int h1(int key) const
+    {
+        return key % TABLE_SIZE;
+    }
+
+    // Second hash
+    int h2(int key) const
+    {
+        return PRIME - (key % PRIME);
+    }
 
 public:
-    ConcretePlayerTable()
-    {
-        // TODO: Initialize your hash table
-    }
+    ConcretePlayerTable() {}
 
     void insert(int playerID, string name) override
     {
-        // TODO: Implement double hashing insert
-        // Remember to handle collisions using h1(key) + i * h2(key)
+        int index1 = h1(playerID);
+        int index2 = h2(playerID);
+
+        for (int i = 0; i < TABLE_SIZE; i++)
+        {
+            int index = (index1 + i * index2) % TABLE_SIZE;
+
+            // Update existing
+            if (table[index].occupied && table[index].playerID == playerID)
+            {
+                table[index].name = name;
+                return;
+            }
+
+            // Insert new
+            if (!table[index].occupied)
+            {
+                table[index].playerID = playerID;
+                table[index].name = name;
+                table[index].occupied = true;
+                return;
+            }
+        }
+
+        cout << "Table is Full" << endl;
     }
 
     string search(int playerID) override
     {
-        // TODO: Implement double hashing search
-        // Return "" if player not found
+        int index1 = h1(playerID);
+        int index2 = h2(playerID);
+
+        for (int i = 0; i < TABLE_SIZE; i++)
+        {
+            int index = (index1 + i * index2) % TABLE_SIZE;
+
+            if (!table[index].occupied)
+                return "";
+
+            if (table[index].playerID == playerID)
+                return table[index].name;
+        }
+
         return "";
     }
 };
@@ -197,43 +253,94 @@ public:
 class ConcreteAuctionTree : public AuctionTree
 {
 private:
-    // TODO: Define your Red-Black Tree node structure
-    // Hint: Each node needs: id, price, color, left, right, parent pointers
-    int id;
-    int price;
-    string color;
-    ConcreteAuctionTree *left;
-    ConcreteAuctionTree *right;
-    ConcreteAuctionTree *parent;
-    ConcreteAuctionTree *root;
-    ConcreteAuctionTree *insertNode(ConcreteAuctionTree *&root, ConcreteAuctionTree *newNode);
-    void roteateLeft(ConcreteAuctionTree *&root, ConcreteAuctionTree *x);
-    void roteateRight(ConcreteAuctionTree *&root, ConcreteAuctionTree *x);
-    void fixInsert(ConcreteAuctionTree *&root, ConcreteAuctionTree *x);
-    void fixDelete(ConcreteAuctionTree *&root, ConcreteAuctionTree *x);
-    void deleteNode(ConcreteAuctionTree *&root, int itemID);
-    void setColor(ConcreteAuctionTree *&root, ConcreteAuctionTree *x, string color);
-    string getColor(ConcreteAuctionTree *&root, ConcreteAuctionTree *x);
+    enum Color
+    {
+        RED,
+        BLACK
+    };
 
-public:
-    ConcreteAuctionTree()
+    struct RBNode
     {
-        id = 0;
-        price = 0;
-        color = "";
-        left = NULL;
-        right = NULL;
-        parent = NULL;
-        root = NULL;
+        int id;
+        int price;
+        Color color;
+        RBNode *left;
+        RBNode *right;
+        RBNode *parent;
+
+        RBNode(int itemID, int itemPrice)
+            : id(itemID), price(itemPrice), color(RED),
+              left(nullptr), right(nullptr), parent(nullptr) {}
+    };
+
+    RBNode *root;
+
+    // ==================== COLOR HELPERS ====================
+    Color getColor(RBNode *node)
+    {
+        return (node == nullptr) ? BLACK : node->color;
     }
-    ConcreteAuctionTree *insertNode(ConcreteAuctionTree *&root, ConcreteAuctionTree *newNode)
+
+    void setColor(RBNode *node, Color c)
     {
-        if (root == NULL)
-        {
-            root = newNode;
+        if (node != nullptr)
+            node->color = c;
+    }
+
+    // ==================== ROTATIONS ====================
+    void rotateLeft(RBNode *&root, RBNode *x)
+    {
+        RBNode *y = x->right;
+        x->right = y->left;
+        if (y->left != nullptr)
+            y->left->parent = x;
+
+        y->parent = x->parent;
+        if (x->parent == nullptr)
+            root = y;
+        else if (x == x->parent->left)
+            x->parent->left = y;
+        else
+            x->parent->right = y;
+
+        y->left = x;
+        x->parent = y;
+    }
+
+    void rotateRight(RBNode *&root, RBNode *x)
+    {
+        RBNode *y = x->left;
+        x->left = y->right;
+        if (y->right != nullptr)
+            y->right->parent = x;
+
+        y->parent = x->parent;
+        if (x->parent == nullptr)
+            root = y;
+        else if (x == x->parent->right)
+            x->parent->right = y;
+        else
+            x->parent->left = y;
+
+        y->right = x;
+        x->parent = y;
+    }
+
+    // ==================== COMPOSITE KEY ====================
+    bool less(RBNode *a, RBNode *b)
+    {
+        if (a->price != b->price)
+            return a->price < b->price;
+        return a->id < b->id;
+    }
+
+    // ==================== BST INSERT ====================
+    RBNode *insertNode(RBNode *&root, RBNode *newNode)
+    {
+        if (root == nullptr)
             return newNode;
-        }
-        if (newNode->price < root->price)
+
+        if (less(newNode, root))
         {
             root->left = insertNode(root->left, newNode);
             root->left->parent = root;
@@ -246,24 +353,242 @@ public:
         return root;
     }
 
-    void insertItem(int itemID, int price) override
+    // ==================== FIX INSERT ====================
+    void fixInsert(RBNode *&root, RBNode *node)
     {
-        // TODO: Implement Red-Black Tree insertion
-        // Remember to maintain RB-Tree properties with rotations and recoloring
-        ConcreteAuctionTree *newNode = new ConcreteAuctionTree();
-        newNode->id = itemID;
-        newNode->price = price;
-        newNode->color = "RED";
-        newNode->left = NULL;
-        newNode->right = NULL;
-        newNode->parent = NULL;
-        root = insertNode(root, newNode);
+        while (node != root && getColor(node->parent) == RED)
+        {
+            RBNode *parent = node->parent;
+            RBNode *grand = parent->parent;
+
+            if (parent == grand->left)
+            {
+                RBNode *uncle = grand->right;
+
+                if (getColor(uncle) == RED)
+                {
+                    setColor(parent, BLACK);
+                    setColor(uncle, BLACK);
+                    setColor(grand, RED);
+                    node = grand;
+                }
+                else
+                {
+                    if (node == parent->right)
+                    {
+                        node = parent;
+                        rotateLeft(root, node);
+                    }
+                    setColor(parent, BLACK);
+                    setColor(grand, RED);
+                    rotateRight(root, grand);
+                }
+            }
+            else
+            {
+                RBNode *uncle = grand->left;
+
+                if (getColor(uncle) == RED)
+                {
+                    setColor(parent, BLACK);
+                    setColor(uncle, BLACK);
+                    setColor(grand, RED);
+                    node = grand;
+                }
+                else
+                {
+                    if (node == parent->left)
+                    {
+                        node = parent;
+                        rotateRight(root, node);
+                    }
+                    setColor(parent, BLACK);
+                    setColor(grand, RED);
+                    rotateLeft(root, grand);
+                }
+            }
+        }
+        setColor(root, BLACK);
     }
 
+    // ==================== SEARCH ====================
+    RBNode *search(RBNode *node, int itemID)
+    {
+        if (!node)
+            return nullptr;
+        if (node->id == itemID)
+            return node;
+        RBNode *leftRes = search(node->left, itemID);
+        if (leftRes)
+            return leftRes;
+        return search(node->right, itemID);
+    }
+
+    // ==================== MIN ====================
+    RBNode *min(RBNode *node)
+    {
+        if (!node)
+            return nullptr;
+        while (node->left)
+            node = node->left;
+        return node;
+    }
+
+    // ==================== TRANSPLANT ====================
+    void transplant(RBNode *&root, RBNode *u, RBNode *v)
+    {
+        if (!u->parent)
+            root = v;
+        else if (u == u->parent->left)
+            u->parent->left = v;
+        else
+            u->parent->right = v;
+
+        if (v)
+            v->parent = u->parent;
+    }
+
+    // ==================== FIX DELETE ====================
+    void fixDelete(RBNode *&root, RBNode *x, RBNode *xParent)
+    {
+        while (x != root && getColor(x) == BLACK)
+        {
+            if (!xParent)
+                break;
+
+            if (x == xParent->left)
+            {
+                RBNode *w = xParent->right;
+
+                if (getColor(w) == RED)
+                {
+                    setColor(w, BLACK);
+                    setColor(xParent, RED);
+                    rotateLeft(root, xParent);
+                    w = xParent->right;
+                }
+
+                if (getColor(w->left) == BLACK && getColor(w->right) == BLACK)
+                {
+                    setColor(w, RED);
+                    x = xParent;
+                    xParent = x->parent;
+                }
+                else
+                {
+                    if (getColor(w->right) == BLACK)
+                    {
+                        setColor(w->left, BLACK);
+                        setColor(w, RED);
+                        rotateRight(root, w);
+                        w = xParent->right;
+                    }
+                    setColor(w, getColor(xParent));
+                    setColor(xParent, BLACK);
+                    setColor(w->right, BLACK);
+                    rotateLeft(root, xParent);
+                    x = root;
+                }
+            }
+            else
+            {
+                RBNode *w = xParent->left;
+
+                if (getColor(w) == RED)
+                {
+                    setColor(w, BLACK);
+                    setColor(xParent, RED);
+                    rotateRight(root, xParent);
+                    w = xParent->left;
+                }
+
+                if (getColor(w->left) == BLACK && getColor(w->right) == BLACK)
+                {
+                    setColor(w, RED);
+                    x = xParent;
+                    xParent = x->parent;
+                }
+                else
+                {
+                    if (getColor(w->left) == BLACK)
+                    {
+                        setColor(w->right, BLACK);
+                        setColor(w, RED);
+                        rotateLeft(root, w);
+                        w = xParent->left;
+                    }
+                    setColor(w, getColor(xParent));
+                    setColor(xParent, BLACK);
+                    setColor(w->left, BLACK);
+                    rotateRight(root, xParent);
+                    x = root;
+                }
+            }
+        }
+        setColor(x, BLACK);
+    }
+
+public:
+    ConcreteAuctionTree() : root(nullptr) {}
+
+    // ==================== INSERT ====================
+    void insertItem(int itemID, int price) override
+    {
+        RBNode *node = new RBNode(itemID, price);
+        root = insertNode(root, node);
+        fixInsert(root, node);
+    }
+
+    // ==================== DELETE ====================
     void deleteItem(int itemID) override
     {
-        // TODO: Implement Red-Black Tree deletion
-        // This is complex - handle all cases carefully
+        RBNode *z = search(root, itemID);
+        if (!z)
+            return;
+
+        RBNode *y = z;
+        RBNode *x;
+        Color yOriginalColor = y->color;
+
+        if (!z->left)
+        {
+            x = z->right;
+            transplant(root, z, z->right);
+        }
+        else if (!z->right)
+        {
+            x = z->left;
+            transplant(root, z, z->left);
+        }
+        else
+        {
+            y = min(z->right);
+            yOriginalColor = y->color;
+            x = y->right;
+            if (y->parent == z)
+            {
+                if (x)
+                    x->parent = y;
+            }
+            else
+            {
+                transplant(root, y, y->right);
+                y->right = z->right;
+                y->right->parent = y;
+            }
+            transplant(root, z, y);
+            y->left = z->left;
+            y->left->parent = y;
+            y->color = z->color;
+        }
+
+        RBNode *xParent = (x != nullptr) ? x->parent : y->parent;
+        delete z;
+        if (yOriginalColor == BLACK)
+            fixDelete(root, x, xParent);
+
+        if (root)
+            root->color = BLACK;
     }
 };
 
