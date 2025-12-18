@@ -664,15 +664,20 @@ int InventorySystem::maximizeCarryValue(int capacity, vector<pair<int, int>> &it
 
 long long InventorySystem::countStringPossibilities(string word)
 {
- const int MOD = 1e9 + 7;
-    long long len =word.size();
-    int i = 0;
-    while (i < len) {
+    const int MOD = 1e9 + 7;
+    long long len = word.size();
+    
+    // If the string is empty, return 1
+    if (len == 0) {
+        return 1;
+    }
+    
+    // Check for invalid characters 'm' or 'w'
+    for (int i = 0; i < len; i++) {
         if (word[i] == 'm' || word[i] == 'w') {
             return 0;
         }
-    i++;
-}
+    }
     vector<long long> table(len+1);
     table[0] = 1;
     table[1] = 1;
@@ -720,7 +725,6 @@ bool WorldNavigator::pathExists(int n, vector<vector<int>> &edges, int source, i
 }
 
 
-long long WorldNavigator::minBribeCost(int n, int m, long long goldRate, long long silverRate,
 struct Edge { int u, v; long long cost; };
 
 struct DSU
