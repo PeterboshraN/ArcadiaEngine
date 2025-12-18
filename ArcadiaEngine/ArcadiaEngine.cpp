@@ -302,29 +302,107 @@ long long InventorySystem::countStringPossibilities(string s)
 
 bool WorldNavigator::pathExists(int n, vector<vector<int>> &edges, int source, int dest)
 {
-    // TODO: Implement path existence check using BFS or DFS
-    // edges are bidirectional
+    vector<vector<int>> adj(n);
+    for (auto &e : edges)
+    {
+        adj[e[0]].push_back(e[1]);
+        adj[e[1]].push_back(e[0]);
+    }
+
+    vector<bool> vis(n, false);
+    queue<int> q;
+    q.push(source);
+    vis[source] = true;
+
+    while (!q.empty())
+    {
+        int u = q.front(); q.pop();
+        if (u == dest) return true;
+
+        for (int v : adj[u])
+            if (!vis[v])
+            {
+                vis[v] = true;
+                q.push(v);
+            }
+    }
     return false;
 }
 
+
 long long WorldNavigator::minBribeCost(int n, int m, long long goldRate, long long silverRate,
-                                       vector<vector<int>> &roadData)
+struct Edge { int u, v; long long cost; };
+
+struct DSU
 {
-    // TODO: Implement Minimum Spanning Tree (Kruskal's or Prim's)
-    // roadData[i] = {u, v, goldCost, silverCost}
-    // Total cost = goldCost * goldRate + silverCost * silverRate
-    // Return -1 if graph cannot be fully connected
-    return -1;
+    vector<int> p, r;
+    DSU(int n) : p(n), r(n,0) { iota(p.begin(), p.end(), 0); }
+    int find(int x){ return p[x]==x?x:p[x]=find(p[x]); }
+    bool unite(int a,int b)
+    {
+        a=find(a); b=find(b);
+        if(a==b) return false;
+        if(r[a]<r[b]) swap(a,b);
+        p[b]=a;
+        if(r[a]==r[b]) r[a]++;
+        return true;
+    }
+};
+
+long long WorldNavigator::minBribeCost(
+    int n,int m,long long goldRate,long long silverRate,
+    vector<vector<int>> &roadData)
+{
+    vector<Edge> edges;
+    for(auto &r:roadData)
+        edges.push_back({r[0], r[1], r[2]*goldRate + r[3]*silverRate});
+
+    sort(edges.begin(), edges.end(),
+         [](Edge &a, Edge &b){ return a.cost < b.cost; });
+
+    DSU dsu(n);
+    long long ans = 0;
+    int cnt = 0;
+
+    for(auto &e:edges)
+        if(dsu.unite(e.u,e.v))
+            ans += e.cost, cnt++;
+
+    return (cnt == n-1 ? ans : -1);
 }
+
 
 string WorldNavigator::sumMinDistancesBinary(int n, vector<vector<int>> &roads)
 {
-    // TODO: Implement All-Pairs Shortest Path (Floyd-Warshall)
-    // Sum all shortest distances between unique pairs (i < j)
-    // Return the sum as a binary string
-    // Hint: Handle large numbers carefully
-    return "0";
+    const long long INF = LLONG_MAX / 4;
+    vector<vector<long long>> d(n, vector<long long>(n, INF));
+
+    for(int i=0;i<n;i++) d[i][i]=0;
+
+    for(auto &r:roads)
+    {
+        d[r[0]][r[1]] = min(d[r[0]][r[1]], (long long)r[2]);
+        d[r[1]][r[0]] = min(d[r[1]][r[0]], (long long)r[2]);
+    }
+
+    for(int k=0;k<n;k++)
+        for(int i=0;i<n;i++)
+            for(int j=0;j<n;j++)
+                if(d[i][k]+d[k][j] < d[i][j])
+                    d[i][j] = d[i][k]+d[k][j];
+
+    long long sum = 0;
+    for(int i=0;i<n;i++)
+        for(int j=i+1;j<n;j++)
+            if(d[i][j] < INF) sum += d[i][j];
+
+    if(sum==0) return "0";
+
+    string b="";
+    while(sum) b = char('0'+(sum&1)) + b, sum>>=1;
+    return b;
 }
+
 
 // =========================================================
 // PART D: SERVER KERNEL (Greedy)
@@ -372,4 +450,5 @@ extern "C"
     {
         return new ConcreteAuctionTree();
     }
+
 }
